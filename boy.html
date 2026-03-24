@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Happy Numbers — for you</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --rose: #e8b4c0;
+    --rose-deep: #c47d94;
+    --rose-dark: #8b3d5a;
+    --cream: #fdf8f2;
+    --ink: #2a1a22;
+    --muted: #7a5a66;
+    --gold: #c9a96e;
+    --gold-light: #f0e2c8;
+    --glow: rgba(232,180,192,0.35);
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    overflow-x: hidden;
+  }
+
+  .bg-dots {
+    position: fixed;
+    inset: 0;
+    background-image: radial-gradient(circle, #d4b0ba 1px, transparent 1px);
+    background-size: 32px 32px;
+    opacity: 0.25;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .card {
+    position: relative;
+    z-index: 1;
+    background: white;
+    border: 1px solid var(--rose);
+    border-radius: 24px;
+    padding: 3rem 2.5rem 2.5rem;
+    max-width: 500px;
+    width: 100%;
+    box-shadow: 0 8px 40px rgba(196,125,148,0.15), 0 2px 8px rgba(196,125,148,0.08);
+  }
+
+  .corner-ornament {
+    position: absolute;
+    font-size: 20px;
+    opacity: 0.4;
+    color: var(--rose-deep);
+  }
+  .corner-ornament.tl { top: 14px; left: 18px; }
+  .corner-ornament.tr { top: 14px; right: 18px; transform: scaleX(-1); }
+  .corner-ornament.bl { bottom: 14px; left: 18px; transform: scaleY(-1); }
+  .corner-ornament.br { bottom: 14px; right: 18px; transform: scale(-1,-1); }
+
+  .eyebrow {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--rose-deep);
+    text-align: center;
+    margin-bottom: 0.75rem;
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: var(--ink);
+    text-align: center;
+    line-height: 1.2;
+    margin-bottom: 0.4rem;
+  }
+
+  h1 em {
+    font-style: italic;
+    color: var(--rose-dark);
+  }
+
+  .subtitle {
+    font-size: 13px;
+    color: var(--muted);
+    text-align: center;
+    margin-bottom: 2rem;
+    font-style: italic;
+  }
+
+  .divider {
+    width: 60px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--rose), transparent);
+    margin: 0 auto 2rem;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 1.5rem;
+  }
+
+  input[type="number"] {
+    flex: 1;
+    padding: 14px 18px;
+    font-size: 1.1rem;
+    font-family: 'Playfair Display', serif;
+    font-weight: 400;
+    color: var(--ink);
+    background: var(--cream);
+    border: 1.5px solid var(--rose);
+    border-radius: 12px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+  input[type="number"]:focus {
+    border-color: var(--rose-deep);
+    box-shadow: 0 0 0 3px var(--glow);
+  }
+  input[type="number"]::placeholder { color: #c9b0b8; font-style: italic; font-size: 0.95rem; }
+
+  button {
+    padding: 14px 24px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: white;
+    background: var(--rose-dark);
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.12s;
+    white-space: nowrap;
+  }
+  button:hover { background: #7a3451; }
+  button:active { transform: scale(0.97); }
+
+  .result-box {
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 1.25rem;
+    border-radius: 14px;
+    background: var(--cream);
+    border: 1px solid transparent;
+    transition: all 0.4s ease;
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  .result-box.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .result-box.happy {
+    background: linear-gradient(135deg, #fff0f4, #fdf8f2);
+    border-color: var(--rose);
+  }
+
+  .result-box.sad {
+    background: #f8f6fa;
+    border-color: #ddd4e4;
+  }
+
+  .result-number {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.4rem;
+    font-weight: 700;
+    color: var(--ink);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .result-verdict {
+    font-size: 0.9rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .result-box.happy .result-verdict { color: var(--rose-dark); }
+  .result-box.sad .result-verdict { color: #7e6d93; }
+
+  .result-message {
+    font-size: 13px;
+    color: var(--muted);
+    font-style: italic;
+    margin-top: 6px;
+  }
+
+  .steps-toggle {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--rose-deep);
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .steps-toggle:hover { color: var(--rose-dark); }
+
+  .steps-viz {
+    display: none;
+    margin-top: 12px;
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+  }
+  .steps-viz.open { display: flex; }
+
+  .step-chip {
+    font-family: 'Playfair Display', serif;
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: var(--gold-light);
+    color: var(--ink);
+    border: 1px solid var(--gold);
+    position: relative;
+  }
+  .step-chip::after {
+    content: '→';
+    margin-left: 6px;
+    color: var(--gold);
+    font-style: normal;
+    font-family: sans-serif;
+  }
+  .step-chip:last-child::after { content: ''; }
+  .step-chip.final {
+    background: var(--rose-dark);
+    color: white;
+    border-color: var(--rose-dark);
+  }
+
+  .footer-note {
+    margin-top: 2rem;
+    font-size: 11.5px;
+    color: #c9b0b8;
+    text-align: center;
+    font-style: italic;
+    line-height: 1.6;
+  }
+
+  /* floating hearts canvas */
+  #hearts-canvas {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 999;
+  }
+</style>
+</head>
+<body>
+<div class="bg-dots"></div>
+<canvas id="hearts-canvas"></canvas>
+
+<div class="card">
+  <span class="corner-ornament tl">❧</span>
+  <span class="corner-ornament tr">❧</span>
+  <span class="corner-ornament bl">❧</span>
+  <span class="corner-ornament br">❧</span>
+
+  <p class="eyebrow">A little something for you</p>
+  <h1>The <em>Happy</em><br>Number Oracle</h1>
+  <p class="subtitle">because you always make numbers feel magical</p>
+  <div class="divider"></div>
+
+  <div class="input-row">
+    <input type="number" id="numInput" placeholder="Enter any number…" min="1">
+    <button onclick="checkHappy()">Ask ✦</button>
+  </div>
+
+  <div class="result-box" id="resultBox">
+    <div class="result-number" id="resNum"></div>
+    <div class="result-verdict" id="resVerdict"></div>
+    <div class="result-message" id="resMsg"></div>
+    <button class="steps-toggle" id="stepsBtn" onclick="toggleSteps()" style="display:none">show the journey →</button>
+    <div class="steps-viz" id="stepsViz"></div>
+  </div>
+
+  <p class="footer-note">
+    A happy number eventually reaches 1<br>
+    by replacing itself with the sum of its digits squared — over and over.
+  </p>
+</div>
+
+<script>
+  const happyMsgs = [
+    "Just like you make me feel.",
+    "Some things are just meant to be happy.",
+    "The math agrees — this one's special.",
+    "Proof that good things come to those who iterate.",
+    "A number worthy of celebration.",
+  ];
+  const sadMsgs = [
+    "It loops forever, never quite arriving…",
+    "Not every number finds its way. That's okay.",
+    "Stuck in a cycle — unlike us.",
+    "The math has spoken, but not every story ends at 1.",
+    "A tragic little number, this one.",
+  ];
+
+  function getNext(n) {
+    let s = 0;
+    while (n > 0) { let d = n % 10; s += d * d; n = Math.floor(n / 10); }
+    return s;
+  }
+
+  function isHappy(n) {
+    let seen = new Set(), steps = [n];
+    while (n !== 1 && !seen.has(n)) {
+      seen.add(n);
+      n = getNext(n);
+      steps.push(n);
+    }
+    return { happy: n === 1, steps };
+  }
+
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+  let stepsOpen = false;
+  function toggleSteps() {
+    stepsOpen = !stepsOpen;
+    document.getElementById('stepsViz').classList.toggle('open', stepsOpen);
+    document.getElementById('stepsBtn').textContent = stepsOpen ? 'hide the journey ↑' : 'show the journey →';
+  }
+
+  function checkHappy() {
+    const raw = parseInt(document.getElementById('numInput').value);
+    if (isNaN(raw) || raw < 1) {
+      shakeInput(); return;
+    }
+
+    const { happy, steps } = isHappy(raw);
+    const box = document.getElementById('resultBox');
+    box.classList.remove('visible', 'happy', 'sad');
+    stepsOpen = false;
+    document.getElementById('stepsViz').classList.remove('open');
+
+    setTimeout(() => {
+      document.getElementById('resNum').textContent = raw.toLocaleString();
+      document.getElementById('resVerdict').textContent = happy ? '✦ Happy Number ✦' : '✧ Not a Happy Number ✧';
+      document.getElementById('resMsg').textContent = happy ? pick(happyMsgs) : pick(sadMsgs);
+
+      const btn = document.getElementById('stepsBtn');
+      const viz = document.getElementById('stepsViz');
+
+      const displaySteps = steps.length > 12 ? [...steps.slice(0, 10), '…', steps[steps.length-1]] : steps;
+      viz.innerHTML = displaySteps.map((s, i) => {
+        const isLast = i === displaySteps.length - 1;
+        return `<span class="step-chip${isLast && happy ? ' final' : ''}">${s}</span>`;
+      }).join('');
+      btn.style.display = 'inline';
+      btn.textContent = 'show the journey →';
+
+      box.classList.add('visible', happy ? 'happy' : 'sad');
+      if (happy) launchHearts();
+    }, 50);
+  }
+
+  function shakeInput() {
+    const inp = document.getElementById('numInput');
+    inp.style.animation = 'none';
+    inp.style.borderColor = '#c47d94';
+    setTimeout(() => inp.style.borderColor = '', 800);
+  }
+
+  // Canvas hearts
+  const canvas = document.getElementById('hearts-canvas');
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+
+  function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  function heartPath(ctx, x, y, size) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(size / 10, size / 10);
+    ctx.beginPath();
+    ctx.moveTo(0, -3);
+    ctx.bezierCurveTo(5, -8, 10, -3, 0, 4);
+    ctx.bezierCurveTo(-10, -3, -5, -8, 0, -3);
+    ctx.restore();
+  }
+
+  function launchHearts() {
+    const colors = ['#e8b4c0', '#c47d94', '#f0d0da', '#8b3d5a', '#f5c6d3'];
+    for (let i = 0; i < 40; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: canvas.height + 20,
+        size: 6 + Math.random() * 14,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        vx: (Math.random() - 0.5) * 2.5,
+        vy: -(3 + Math.random() * 4),
+        alpha: 1,
+        delay: i * 60
+      });
+    }
+    if (!animRunning) animate();
+  }
+
+  let animRunning = false;
+  function animate() {
+    animRunning = true;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles = particles.filter(p => p.alpha > 0.01);
+    particles.forEach(p => {
+      if (p.delay > 0) { p.delay -= 16; return; }
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.04;
+      p.alpha -= 0.012;
+      ctx.globalAlpha = Math.max(0, p.alpha);
+      ctx.fillStyle = p.color;
+      heartPath(ctx, p.x, p.y, p.size);
+      ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+    if (particles.length > 0) requestAnimationFrame(animate);
+    else animRunning = false;
+  }
+
+  document.getElementById('numInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') checkHappy();
+  });
+</script>
+</body>
+</html>
